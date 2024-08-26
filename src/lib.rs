@@ -65,6 +65,26 @@ impl Doi {
         self.doi.is_some()
     }
 
+    /// Returns the DOI number.
+    ///
+    /// # Errors
+    ///
+    /// Returns a `Box<dyn Error>` if the DOI is not set, i.e., `None`.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use doi::Doi;
+    /// let doi = Doi::new("10.1109/TCSII.2024.3366282");
+    /// assert_eq!(doi.get_doi().unwrap(), "10.1109/TCSII.2024.3366282".to_string());
+    /// ```
+    pub fn get_doi(&self) -> Result<String, Box<dyn Error>> {
+        match &self.doi {
+            Some(doi) => Ok(doi.clone()),
+            None => Err("DOI is not set".into()),
+        }
+    }
+
     /// Sets the DOI number.
     ///
     /// # Arguments
@@ -84,6 +104,9 @@ impl Doi {
     }
 
     /// Returns the URL of the DOI.
+    ///
+    /// The URL is in the format `https://doi.org/<DOI_NUMBER>`.
+    /// The `doi` field must be set.
     ///
     /// # Examples
     ///
@@ -303,3 +326,8 @@ impl DoiBuilder {
         }
     }
 }
+
+#[cfg(feature = "metadata")]
+mod metadata;
+#[cfg(feature = "metadata")]
+pub use metadata::{DoiMetadata, JsonValue};

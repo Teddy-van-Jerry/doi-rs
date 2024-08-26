@@ -11,5 +11,12 @@ fn main() {
         Ok(resolved) => println!("Resolved Link: {}", resolved),
         Err(e) => eprintln!("Error: {}", e),
     }
-    dbg!(zhao2024flexible);
+    // dbg!(&zhao2024flexible);
+
+    #[cfg(feature = "metadata")]
+    {
+        let metadata = zhao2024flexible.metadata().unwrap();
+        println!("Paper Title: {}", metadata.title.unwrap());
+        dbg!(&zhao2024flexible.metadata_json());
+    }
 }
