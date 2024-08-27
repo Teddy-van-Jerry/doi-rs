@@ -1,5 +1,5 @@
 # Simple workflow for deploying static content to GitHub Pages
-name: Deploy static content to Pages
+name: Rustdoc
 
 on:
   # Runs on pushes targeting the default branch
@@ -46,8 +46,8 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload entire repository
-          path: './target/doc'
+          # Upload the 'doi' crate directory
+          path: './target/doc/doi'
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
