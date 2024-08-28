@@ -1,6 +1,10 @@
 {
     "cSpell.words": [
         "bibtex",
+        "eprintln",
+        "println",
+        "serde",
+        "struct",
         "TCSII",
         "ureq"
     ]

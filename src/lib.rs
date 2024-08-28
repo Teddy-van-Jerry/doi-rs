@@ -3,10 +3,6 @@
 //! This crate provides a simple way to resolve DOIs and retrieve metadata
 //! using the [DOI](https://www.doi.org) APIs.
 //!
-//! ## Synchronous Design
-//! This library is designed to be *synchronous*,
-//! depending on the [`ureq` library](https://docs.rs/ureq) for HTTP requests.
-//!
 //! ## Basic Usage
 //! The following is a basic example of using this library:
 //! ```rust
@@ -44,6 +40,10 @@
 //!     Err(e) => eprintln!("Error: {}", e),
 //! }
 //! ```
+//!
+//! ## Blocking Requests
+//! This library is designed to use blocking I/O,
+//! depending on the [`ureq` library](https://docs.rs/ureq) for HTTP requests.
 //!
 //! ## License
 //! This project is licensed under the [MIT license](https://github.com/Teddy-van-Jerry/doi-rs/blob/master/LICENSE).
