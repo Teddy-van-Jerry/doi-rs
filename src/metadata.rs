@@ -4,17 +4,67 @@ pub use ureq::serde_json::Value as JsonValue;
 
 /// Metadata for a DOI.
 #[derive(Debug, Clone, Default)]
+
 pub struct DoiMetadata {
     /// Digital Object Identifier (DOI) number.
     pub doi: String,
     /// Title of the document.
     pub title: Option<String>,
+    /// Author(s) of the document.
+    pub authors: Option<Vec<DoiMetadataPerson>>,
+}
+
+/// Metadata for a person.
+#[derive(Debug, Clone, Default)]
+pub struct DoiMetadataPerson {
+    pub given: Option<String>,
+    pub family: Option<String>,
+    pub suffix: Option<String>,
+}
+
+impl DoiMetadataPerson {
+    /// Returns the full name of the person.
+    /// 
+    /// # Errors
+    /// 
+    /// Returns `Err(())` if the person's name is not set (all fields empty).
+    /// 
+    /// # Example
+    /// 
+    /// ```
+    /// use doi::DoiMetadataPerson;
+    /// let person = DoiMetadataPerson {
+    ///      given: Some("Teddy".to_string()),
+    ///      family: Some("Jerry".to_string()),
+    ///      suffix: Some("Jr.".to_string()),
+    /// };
+    /// assert_eq!(person.full_name().unwrap(), "Teddy Jerry Jr.".to_string());
+    /// let no_name = DoiMetadataPerson::default();
+    /// assert_eq!(no_name.full_name().is_ok(), false);
+    pub fn full_name(&self) -> Result<String, ()> {
+        match (&self.given, &self.family, &self.suffix) {
+            (Some(given), Some(family), Some(suffix)) => {
+                Ok(format!("{} {} {}", given, family, suffix))
+            }
+            (Some(given), Some(family), None) => Ok(format!("{} {}", given, family)),
+            (Some(given), None, Some(suffix)) => Ok(format!("{} {}", given, suffix)),
+            (Some(given), None, None) => Ok(given.to_string()),
+            (None, Some(family), Some(suffix)) => Ok(format!("{} {}", family, suffix)),
+            (None, Some(family), None) => Ok(family.to_string()),
+            (None, None, Some(suffix)) => Ok(suffix.to_string()),
+            _ => Err(()),
+        }
+    }
 }
 
 impl DoiMetadata {
     /// Creates a new instance of [`DoiMetadata`].
     pub fn new(doi: String) -> Self {
-        Self { doi, title: None }
+        Self {
+            doi,
+            title: None,
+            authors: None,
+        }
     }
 }
 
@@ -35,6 +85,11 @@ impl Doi {
     ///     Ok(metadata) => {
     ///         let title = metadata.title.unwrap_or("<unknown>".to_string());
     ///         println!("Paper Title: {}", title);
+    ///         let authors = metadata.authors.unwrap_or_default();
+    ///         for author in authors {
+    ///             let name = author.full_name().unwrap_or("<unknown>".to_string());
+    ///             println!("Author: {}", name);
+    ///         }
     ///         assert_eq!(title, "Flexible High-Level Synthesis Library for Linear Transformations".to_string());
     ///     },
     ///     Err(e) => eprintln!("Error: {}", e),
@@ -46,6 +101,20 @@ impl Doi {
         let json = self.metadata_json()?;
         if let Some(title) = json["title"].as_str() {
             metadata.title = Some(title.to_string());
+        }
+        if let Some(authors) = json["author"].as_array() {
+            let mut author_list = Vec::new();
+            for author in authors {
+                let given = author["given"].as_str().map(|s| s.to_string());
+                let family = author["family"].as_str().map(|s| s.to_string());
+                let suffix = author["suffix"].as_str().map(|s| s.to_string());
+                author_list.push(DoiMetadataPerson {
+                    given,
+                    family,
+                    suffix,
+                });
+            }
+            metadata.authors = Some(author_list);
         }
         Ok(metadata)
     }

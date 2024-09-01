@@ -17,6 +17,12 @@ fn main() {
     {
         let metadata = zhao2024flexible.metadata().unwrap();
         println!("Paper Title: {}", metadata.title.unwrap());
+        if let Some(authors) = metadata.authors {
+            for author in authors {
+                let name = author.full_name().unwrap();
+                println!("Author: {}", name);
+            }
+        }
         dbg!(&zhao2024flexible.metadata_json());
     }
 }
