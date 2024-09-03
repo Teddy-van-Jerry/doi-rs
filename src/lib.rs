@@ -355,4 +355,4 @@ impl DoiBuilder {
 #[cfg(feature = "metadata")]
 mod metadata;
 #[cfg(feature = "metadata")]
-pub use metadata::{DoiMetadata, DoiMetadataPerson, JsonValue};
+pub use metadata::{DoiMetadata, DoiMetadataPerson, DoiMetadataType, JsonValue};

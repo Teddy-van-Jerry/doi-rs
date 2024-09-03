@@ -23,6 +23,9 @@ fn main() {
                 println!("Author: {}", name);
             }
         }
+        if let Some(r#type) = metadata.r#type {
+            println!("Type: {}", r#type.as_str());
+        }
         dbg!(&zhao2024flexible.metadata_json());
     }
 }

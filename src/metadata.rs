@@ -3,8 +3,9 @@ use std::error::Error;
 pub use ureq::serde_json::Value as JsonValue;
 
 /// Metadata for a DOI.
+///
+/// The metadata schema is roughly [`citation-style-language`](https://github.com/citation-style-language/schema).
 #[derive(Debug, Clone, Default)]
-
 pub struct DoiMetadata {
     /// Digital Object Identifier (DOI) number.
     pub doi: String,
@@ -12,6 +13,8 @@ pub struct DoiMetadata {
     pub title: Option<String>,
     /// Author(s) of the document.
     pub authors: Option<Vec<DoiMetadataPerson>>,
+    /// Type of the document.
+    pub r#type: Option<DoiMetadataType>,
 }
 
 /// Metadata for a person.
@@ -24,13 +27,13 @@ pub struct DoiMetadataPerson {
 
 impl DoiMetadataPerson {
     /// Returns the full name of the person.
-    /// 
+    ///
     /// # Errors
-    /// 
+    ///
     /// Returns `Err(())` if the person's name is not set (all fields empty).
-    /// 
+    ///
     /// # Example
-    /// 
+    ///
     /// ```
     /// use doi::DoiMetadataPerson;
     /// let person = DoiMetadataPerson {
@@ -41,6 +44,7 @@ impl DoiMetadataPerson {
     /// assert_eq!(person.full_name().unwrap(), "Teddy Jerry Jr.".to_string());
     /// let no_name = DoiMetadataPerson::default();
     /// assert_eq!(no_name.full_name().is_ok(), false);
+    /// ```
     pub fn full_name(&self) -> Result<String, ()> {
         match (&self.given, &self.family, &self.suffix) {
             (Some(given), Some(family), Some(suffix)) => {
@@ -57,6 +61,175 @@ impl DoiMetadataPerson {
     }
 }
 
+/// Metadata type for a DOI.
+///
+/// Reference: [`csl-data.json`](https://github.com/citation-style-language/schema/blob/e3ce254a72c4470a5ed3b9d23b428017d25674e9/schemas/input/csl-data.json#L9-L58)
+#[derive(Debug, Clone, PartialEq)]
+pub enum DoiMetadataType {
+    Article,
+    ArticleJournal,
+    ArticleMagazine,
+    ArticleNewspaper,
+    Bill,
+    Book,
+    Broadcast,
+    Chapter,
+    Classic,
+    Collection,
+    Dataset,
+    Document,
+    Entry,
+    EntryDictionary,
+    EntryEncyclopedia,
+    Event,
+    Figure,
+    Graphic,
+    Hearing,
+    Interview,
+    LegalCase,
+    Legislation,
+    Manuscript,
+    Map,
+    MotionPicture,
+    MusicalScore,
+    Pamphlet,
+    PaperConference,
+    Patent,
+    Performance,
+    Periodical,
+    PersonalCommunication,
+    Post,
+    PostWeblog,
+    Regulation,
+    Report,
+    Review,
+    ReviewBook,
+    Software,
+    Song,
+    Speech,
+    Standard,
+    Thesis,
+    Treaty,
+    Webpage,
+    MISC(String),
+}
+
+impl DoiMetadataType {
+    /// Creates a new instance of [`DoiMetadataType`] from a string.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use doi::DoiMetadataType;
+    /// let article = DoiMetadataType::new("article");
+    /// assert_eq!(article, DoiMetadataType::Article);
+    /// let misc = DoiMetadataType::new("unknown");
+    /// assert_eq!(misc, DoiMetadataType::MISC("unknown".to_string()));
+    /// ```
+    pub fn new(s: &str) -> Self {
+        match s {
+            "article" => Self::Article,
+            "article-journal" => Self::ArticleJournal,
+            "article-magazine" => Self::ArticleMagazine,
+            "article-newspaper" => Self::ArticleNewspaper,
+            "bill" => Self::Bill,
+            "book" => Self::Book,
+            "broadcast" => Self::Broadcast,
+            "chapter" => Self::Chapter,
+            "classic" => Self::Classic,
+            "collection" => Self::Collection,
+            "dataset" => Self::Dataset,
+            "document" => Self::Document,
+            "entry" => Self::Entry,
+            "entry-dictionary" => Self::EntryDictionary,
+            "entry-encyclopedia" => Self::EntryEncyclopedia,
+            "event" => Self::Event,
+            "figure" => Self::Figure,
+            "graphic" => Self::Graphic,
+            "hearing" => Self::Hearing,
+            "interview" => Self::Interview,
+            "legal_case" => Self::LegalCase,
+            "legislation" => Self::Legislation,
+            "manuscript" => Self::Manuscript,
+            "map" => Self::Map,
+            "motion_picture" => Self::MotionPicture,
+            "musical_score" => Self::MusicalScore,
+            "pamphlet" => Self::Pamphlet,
+            "paper-conference" => Self::PaperConference,
+            "patent" => Self::Patent,
+            "performance" => Self::Performance,
+            "periodical" => Self::Periodical,
+            "personal_communication" => Self::PersonalCommunication,
+            "post" => Self::Post,
+            "post-weblog" => Self::PostWeblog,
+            "regulation" => Self::Regulation,
+            "report" => Self::Report,
+            "review" => Self::Review,
+            "review-book" => Self::ReviewBook,
+            "software" => Self::Software,
+            "song" => Self::Song,
+            "speech" => Self::Speech,
+            "standard" => Self::Standard,
+            "thesis" => Self::Thesis,
+            "treaty" => Self::Treaty,
+            "webpage" => Self::Webpage,
+            s => Self::MISC(s.to_string()),
+        }
+    }
+
+    /// Returns the DOI metadata type as a string.
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::Article => "article",
+            Self::ArticleJournal => "article-journal",
+            Self::ArticleMagazine => "article-magazine",
+            Self::ArticleNewspaper => "article-newspaper",
+            Self::Bill => "bill",
+            Self::Book => "book",
+            Self::Broadcast => "broadcast",
+            Self::Chapter => "chapter",
+            Self::Classic => "classic",
+            Self::Collection => "collection",
+            Self::Dataset => "dataset",
+            Self::Document => "document",
+            Self::Entry => "entry",
+            Self::EntryDictionary => "entry-dictionary",
+            Self::EntryEncyclopedia => "entry-encyclopedia",
+            Self::Event => "event",
+            Self::Figure => "figure",
+            Self::Graphic => "graphic",
+            Self::Hearing => "hearing",
+            Self::Interview => "interview",
+            Self::LegalCase => "legal_case",
+            Self::Legislation => "legislation",
+            Self::Manuscript => "manuscript",
+            Self::Map => "map",
+            Self::MotionPicture => "motion_picture",
+            Self::MusicalScore => "musical_score",
+            Self::Pamphlet => "pamphlet",
+            Self::PaperConference => "paper-conference",
+            Self::Patent => "patent",
+            Self::Performance => "performance",
+            Self::Periodical => "periodical",
+            Self::PersonalCommunication => "personal_communication",
+            Self::Post => "post",
+            Self::PostWeblog => "post-weblog",
+            Self::Regulation => "regulation",
+            Self::Report => "report",
+            Self::Review => "review",
+            Self::ReviewBook => "review-book",
+            Self::Software => "software",
+            Self::Song => "song",
+            Self::Speech => "speech",
+            Self::Standard => "standard",
+            Self::Thesis => "thesis",
+            Self::Treaty => "treaty",
+            Self::Webpage => "webpage",
+            Self::MISC(s) => s,
+        }
+    }
+}
+
 impl DoiMetadata {
     /// Creates a new instance of [`DoiMetadata`].
     pub fn new(doi: String) -> Self {
@@ -64,6 +237,7 @@ impl DoiMetadata {
             doi,
             title: None,
             authors: None,
+            r#type: None,
         }
     }
 }
@@ -115,6 +289,9 @@ impl Doi {
                 });
             }
             metadata.authors = Some(author_list);
+        }
+        if let Some(r#type) = json["type"].as_str() {
+            metadata.r#type = Some(DoiMetadataType::new(r#type));
         }
         Ok(metadata)
     }
