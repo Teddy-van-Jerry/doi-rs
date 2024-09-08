@@ -37,9 +37,10 @@ Supported metadata fields:
 | --- | --- | --- |
 | `title` | `Option<String>` | Title of the document |
 | `authors` | `Option<Vec<DoiMetadataPerson>>` | Author(s) of the document |
-| `r#type` | `Option<String>` | Type of the document (e.g., journal, conference) |
+| `r#type` | `Option<DoiMetadataType>` | Type of the document (e.g., journal, conference) |
 
 The `DoiMetadataPerson` struct has the fields `given`, `family`, and `suffix`, which are all `Option<String>`.
+The `DoiMetadataType` enum has the `as_str` method to get the string representation.
 
 ### Raw JSON Metadata
 The raw JSON metadata can be retrieved using the `metadata_json` method,
@@ -52,6 +53,8 @@ match doi.metadata_json() {
     Err(e) => eprintln!("Error: {}", e),
 }
 ```
+
+The raw JSON string can be obtained via the `metadata_json_string` method.
 
 ## Blocking Requests
 This library is designed to use blocking I/O,
