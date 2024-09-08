@@ -13,7 +13,7 @@ pub struct DoiMetadata {
     pub title: Option<String>,
     /// Author(s) of the document.
     pub authors: Option<Vec<DoiMetadataPerson>>,
-    /// Type of the document.
+    /// Type of the document (e.g., journal, conference).
     pub r#type: Option<DoiMetadataType>,
 }
 
