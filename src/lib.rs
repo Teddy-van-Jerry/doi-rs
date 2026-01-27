@@ -106,6 +106,67 @@ impl Doi {
         self.doi.is_some()
     }
 
+    /// Validates the DOI format according to ISO 26324.
+    ///
+    /// A valid DOI must:
+    /// - Have a prefix starting with `10.`
+    /// - Have a registrant code (number ≥ 1000) after `10.`
+    /// - Have a `/` separating the prefix and suffix
+    /// - Have a non-empty suffix
+    ///
+    /// Returns `false` if the DOI is not set.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use doi::Doi;
+    ///
+    /// // Valid DOIs
+    /// assert!(Doi::new("10.1000/182").is_valid());
+    /// assert!(Doi::new("10.1109/TCSII.2024.3366282").is_valid());
+    /// assert!(Doi::new("10.1000.1/test").is_valid()); // Sub-divided prefix
+    ///
+    /// // Invalid DOIs
+    /// assert!(!Doi::new("not-a-doi").is_valid());
+    /// assert!(!Doi::new("10.999/test").is_valid()); // Registrant < 1000
+    /// assert!(!Doi::new("10.1000").is_valid()); // No suffix
+    /// assert!(!Doi::new("11.1000/test").is_valid()); // Wrong directory indicator
+    /// ```
+    pub fn is_valid(&self) -> bool {
+        let Some(doi) = &self.doi else {
+            return false;
+        };
+
+        // Must start with "10."
+        if !doi.starts_with("10.") {
+            return false;
+        }
+
+        // Find the separator between prefix and suffix
+        let Some(slash_pos) = doi.find('/') else {
+            return false;
+        };
+
+        // Extract registrant code (everything between "10." and the first "/" or ".")
+        let after_10 = &doi[3..slash_pos];
+        if after_10.is_empty() {
+            return false;
+        }
+
+        // The registrant code is the first segment (before any sub-element ".")
+        let registrant_code = after_10.split('.').next().unwrap_or("");
+
+        // Registrant code must be numeric and >= 1000
+        match registrant_code.parse::<u32>() {
+            Ok(code) if code >= 1000 => {}
+            _ => return false,
+        }
+
+        // Suffix must be non-empty
+        let suffix = &doi[slash_pos + 1..];
+        !suffix.is_empty()
+    }
+
     /// Returns the DOI number.
     ///
     /// # Errors
