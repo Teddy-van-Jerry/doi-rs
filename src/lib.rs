@@ -53,7 +53,7 @@
 //!     Err(e) => eprintln!("Error: {}", e),
 //! }
 //! ```
-//! 
+//!
 //! The raw JSON string can be obtained via the [`Doi::metadata_json_string`] method.
 //!
 //! ## Blocking Requests
@@ -65,7 +65,8 @@
 
 extern crate ureq;
 use std::error::Error;
-use ureq::Agent;
+use ureq::config::Config;
+use ureq::{Agent, ResponseExt};
 
 /// Digital Object Identifier (DOI) is a unique identifier for a digital object such as a document.
 #[derive(Debug, Clone)]
@@ -185,13 +186,17 @@ impl Doi {
     /// ```
     pub fn resolve(&self) -> Result<String, Box<dyn Error>> {
         let url = self.https_url();
-        match self.agent.head(&url).call() {
-            Ok(response) | Err(ureq::Error::Status(418, response)) => {
-                let resolved_link = response.get_url().to_string();
-                Ok(resolved_link)
-            }
-            Err(e) => Err(Box::new(e)),
-        }
+        // Use a request builder with http_status_as_error=false to get the response
+        // even on 4xx/5xx status codes, allowing us to extract the final URI
+        let response = self
+            .agent
+            .head(&url)
+            .config()
+            .http_status_as_error(false)
+            .build()
+            .call()?;
+        let resolved_link = response.get_uri().to_string();
+        Ok(resolved_link)
     }
 }
 
@@ -250,7 +255,7 @@ pub struct DoiBuilder {
     doi: Option<String>,
     /// A `bool` for trying to use the system's proxy settings (default as `true`).
     env_proxy: bool,
-    /// An `Option<String>` representing the proxy URL.
+    /// An `Option<ureq::Proxy>` representing the proxy.
     proxy: Option<ureq::Proxy>,
 }
 
@@ -321,22 +326,16 @@ impl DoiBuilder {
     /// use doi::{Doi, DoiBuilder};
     /// let doi = DoiBuilder::new().doi("10.1109/TCSII.2024.3366282").proxy("http://127.0.0.1:7890").unwrap().build();
     /// ```
-    pub fn proxy<S: Into<String>>(&mut self, proxy: S) -> Result<&mut Self, Box<dyn Error>> {
-        // self.proxy = Some(proxy.into());
-        self.proxy = Some(ureq::Proxy::new(proxy.into())?);
+    pub fn proxy<S: AsRef<str>>(&mut self, proxy: S) -> Result<&mut Self, Box<dyn Error>> {
+        self.proxy = Some(ureq::Proxy::new(proxy.as_ref())?);
         Ok(self)
     }
 
     /// Returns the default `ureq::Agent`.
-    #[cfg(feature = "proxy")]
+    ///
+    /// Uses `Config::default()` which automatically picks up proxy from environment.
     pub fn default_agent() -> Agent {
-        ureq::AgentBuilder::new().try_proxy_from_env(true).build()
-    }
-
-    /// Returns the default `ureq::Agent` (with no proxy).
-    #[cfg(not(feature = "proxy"))]
-    pub fn default_agent() -> Agent {
-        ureq::AgentBuilder::new().build()
+        Agent::new_with_defaults()
     }
 
     /// Builds the [`Doi`] instance.
@@ -348,21 +347,20 @@ impl DoiBuilder {
     /// let doi = DoiBuilder::new().doi("10.1109/TCSII.2024.3366282").build();
     /// ```
     pub fn build(&self) -> Doi {
-        #[cfg(feature = "proxy")]
-        let build_agent = || -> Agent {
-            if let Some(proxy) = &self.proxy {
-                ureq::AgentBuilder::new().proxy(proxy.clone()).build()
-            } else {
-                ureq::AgentBuilder::new()
-                    .try_proxy_from_env(self.env_proxy)
-                    .build()
-            }
+        let agent = if let Some(proxy) = &self.proxy {
+            let config = Config::builder().proxy(Some(proxy.clone())).build();
+            Agent::new_with_config(config)
+        } else if self.env_proxy {
+            // Default config picks up proxy from environment
+            Agent::new_with_defaults()
+        } else {
+            // No proxy
+            let config = Config::builder().proxy(None).build();
+            Agent::new_with_config(config)
         };
-        #[cfg(not(feature = "proxy"))]
-        let build_agent = || -> Agent { ureq::AgentBuilder::new().build() };
         Doi {
             doi: self.doi.clone(),
-            agent: build_agent(),
+            agent,
         }
     }
 }
