@@ -1,6 +1,7 @@
 use crate::Doi;
+pub use serde_json::Value as JsonValue;
 use std::error::Error;
-pub use ureq::serde_json::Value as JsonValue;
+use ureq::Body;
 
 /// Metadata for a DOI.
 ///
@@ -297,12 +298,12 @@ impl Doi {
     }
 
     /// Fetches metadata for the DOI (with `.call()?`).
-    fn metadata_call(&self, accept: &str) -> Result<ureq::Response, Box<dyn Error>> {
+    fn metadata_call(&self, accept: &str) -> Result<ureq::http::Response<Body>, Box<dyn Error>> {
         self.get_doi()?; // Check if DOI is set.
         Ok(self
             .agent
             .get(&self.https_url())
-            .set("Accept", accept)
+            .header("Accept", accept)
             .call()?)
     }
 
@@ -340,7 +341,8 @@ impl Doi {
     /// ```
     pub fn metadata_json(&self) -> Result<JsonValue, Box<dyn Error>> {
         self.metadata_call("application/json")?
-            .into_json()
+            .body_mut()
+            .read_json()
             .map_err(|e| format!("Error parsing JSON: {}", e).into())
     }
 
@@ -363,7 +365,8 @@ impl Doi {
     /// ```
     pub fn metadata_json_string(&self) -> Result<String, Box<dyn Error>> {
         self.metadata_call("application/json")?
-            .into_string()
+            .body_mut()
+            .read_to_string()
             .map_err(|e| format!("Error parsing JSON: {}", e).into())
     }
 
@@ -394,7 +397,8 @@ impl Doi {
     /// ```
     pub fn metadata_bibtex(&self) -> Result<String, Box<dyn Error>> {
         self.metadata_call("application/x-bibtex")?
-            .into_string()
+            .body_mut()
+            .read_to_string()
             .map_err(|e| format!("Error fetching BibTeX: {}", e).into())
     }
 }
