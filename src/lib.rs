@@ -247,8 +247,6 @@ impl Doi {
     /// ```
     pub fn resolve(&self) -> Result<String, Box<dyn Error>> {
         let url = self.https_url();
-        // Use a request builder with http_status_as_error=false to get the response
-        // even on 4xx/5xx status codes, allowing us to extract the final URI
         let response = self
             .agent
             .head(&url)
@@ -256,6 +254,10 @@ impl Doi {
             .http_status_as_error(false)
             .build()
             .call()?;
+        let status = response.status().as_u16();
+        if status >= 400 && status != 418 {
+            return Err(format!("DOI resolution failed with HTTP {}", status).into());
+        }
         let resolved_link = response.get_uri().to_string();
         Ok(resolved_link)
     }
@@ -352,13 +354,11 @@ impl DoiBuilder {
 
     /// Sets whether to use the system's proxy settings.
     ///
+    /// When `true`, the agent will pick up proxy configuration from
+    /// environment variables (`HTTP_PROXY`, `HTTPS_PROXY`, etc.).
     /// This will be overridden by the [`Self::proxy`] method.
     ///
-    /// # Arguments
-    ///
-    /// * `env_proxy` - A `bool` representing whether to use the system's proxy settings.
-    ///                 It is `true` by default if the `proxy` feature is enabled.
-    ///                 (The `proxy` feature is enabled by default.)
+    /// Defaults to `true`.
     ///
     /// # Example
     ///
